@@ -103,9 +103,9 @@ async def database_check(interaction: discord.Interaction):
         if rows:
             user_ids = ', '.join([str(row[0]) for row in rows])
             await interaction.response.send_message(f"User IDs: {user_ids}", ephemeral=True)
-            logging.debug(f"{interaction.user.id} sent a 'database_check' (successful)")
+            logging.debug(f"{interaction.user} (id:{interaction.user.id}) sent a 'database_check' (successful)")
     else:
-        await interaction.response.send_message(f"Sorry, {interaction.user.mention} you don't have perms for this :(")
-        logging.debug(f"{interaction.user.id} attempted to do 'database_check' (failed)")
+        await interaction.response.send_message(f"Sorry, {interaction.user.mention} you don't have perms for this :(", ephemeral=True)
+        logging.debug(f"{interaction.user} (id:{interaction.user.id}) attempted to do 'database_check' (failed)")
 
 bot.run(bot_token)
