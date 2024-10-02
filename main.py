@@ -10,7 +10,7 @@ import logging
 load_dotenv()
 
 encryption_key = os.getenv('ENCRYPTION_KEY')
-bot_token = os.getenv('BOT_TOKEN')
+bot_token = os.getenv('TOKEN')
 
 if not all([[bot_token, encryption_key]]):
     raise ValueError("One or more required environment variables are missing.")
