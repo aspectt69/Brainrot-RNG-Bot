@@ -137,8 +137,13 @@ async def roll(interaction: discord.Interaction):
     else:
         cursor.execute('INSERT INTO player_brainrots (user_id, brainrot_name, amount) VALUES (?, ?, ?)', (interaction.user.id, rolleditem.name, 1,))
     connection.commit()
+    cursor.execute('SELECT coins FROM player_data WHERE user_id = ?', (interaction.user.id,))
+    coins_result = cursor.fetchone()
+    new_coins_amount = coins_result[0] + coinsgained
+    cursor.execute('UPDATE player_data SET amount = ? WHERE user_id = ?', (new_coins_amount, interaction.user.id))
+    connection.commit()
 
-    await interaction.response.send_message(f"You got {rolleditem.name}! ({rolleditem.rarity}) \n With a {rolleditem.percentage} chance!")
+    await interaction.response.send_message(f"You got {rolleditem.name}! ({rolleditem.rarity}) \n With a {rolleditem.percentage} chance! \n \n {coinsgained} coins earned. \n You now have {new_coins_amount} coins!")
 
 @bot.tree.command(name="database_check", description="Check the database for user IDs.")
 async def database_check(interaction: discord.Interaction):
