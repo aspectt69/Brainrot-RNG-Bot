@@ -71,11 +71,14 @@ cursor.execute('''
 CREATE TABLE IF NOT EXISTS player_brainrots (
     user_id INTEGER,
     brainrot_name TEXT,
-    amount INTEGER
+    amount INTEGER,
     PRIMARY KEY (user_id, brainrot_name)
 )
 ''')
 connection.commit()
+
+def check_start_status():
+    pass
 
 @bot.event
 async def on_ready(): 
@@ -153,11 +156,28 @@ async def database_check(interaction: discord.Interaction):
         rows = cursor.fetchall()
 
         if rows:
-            user_ids = ', '.join([str(row[0]) for row in rows])
+            user_ids = ', \n'.join([str(row[0]) for row in rows])
             await interaction.response.send_message(f"User IDs: {user_ids}", ephemeral=True)
             logging.debug(f"{interaction.user} (id:{interaction.user.id}) sent a 'database_check' (successful)")
     else:
         await interaction.response.send_message(f"Sorry, {interaction.user.mention} you don't have perms for this :(", ephemeral=True)
         logging.debug(f"{interaction.user} (id:{interaction.user.id}) attempted to do 'database_check' (failed)")
+
+@bot.tree.command(name="id_check", description="Check the username of an id")
+@app_commands.describe(user_id="The id to check")
+async def id_check(interaction: discord.Interaction, user_id: str):
+    if interaction.user.id == 653063549496590356:
+        try:
+            user = await bot.fetch_user(int(user_id))  # Fetch the user using the ID
+            await interaction.response.send_message(f"User ID: {user_id}\nUsername: {user.name}", ephemeral=True)
+            logging.debug(f"{interaction.user} (id:{interaction.user.id}) sent an 'id_check' (successful)")
+        except discord.NotFound:
+            await interaction.response.send_message(f"User ID {user_id} not found.", ephemeral=True)
+        except ValueError:
+            await interaction.response.send_message("Invalid user ID format. Please enter a valid number.", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"Sorry, {interaction.user.mention} you don't have perms for this :(", ephemeral=True)
+        logging.debug(f"{interaction.user} (id:{interaction.user.id}) attempted to do 'id_check' (failed)")
+
 
 bot.run(bot_token)
