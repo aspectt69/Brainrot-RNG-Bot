@@ -69,9 +69,10 @@ CREATE TABLE IF NOT EXISTS player_data (
 ''')
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS player_brainrots (
-    user_id INTEGER PRIMARY KEY,
+    user_id INTEGER,
     brainrot_name TEXT,
     amount INTEGER
+    PRIMARY KEY (user_id, brainrot_name)
 )
 ''')
 connection.commit()
@@ -140,7 +141,7 @@ async def roll(interaction: discord.Interaction):
     cursor.execute('SELECT coins FROM player_data WHERE user_id = ?', (interaction.user.id,))
     coins_result = cursor.fetchone()
     new_coins_amount = coins_result[0] + coinsgained
-    cursor.execute('UPDATE player_data SET amount = ? WHERE user_id = ?', (new_coins_amount, interaction.user.id))
+    cursor.execute('UPDATE player_data SET coins = ? WHERE user_id = ?', (new_coins_amount, interaction.user.id))
     connection.commit()
 
     await interaction.response.send_message(f"You got {rolleditem.name}! ({rolleditem.rarity}) \n With a {rolleditem.percentage} chance! \n \n {coinsgained} coins earned. \n You now have {new_coins_amount} coins!")
