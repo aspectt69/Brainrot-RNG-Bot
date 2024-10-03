@@ -7,6 +7,7 @@ from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 import os
 import logging
+import random
 
 load_dotenv()
 
@@ -49,6 +50,8 @@ johnpork = BrainRot("John Pork!", "mythic", "5%")
 freakbob = BrainRot("FREAKBOB??", "mythic", "5%")
 rizz = BrainRot("Rizz", "godly", "1%")
 
+brainrots = [sigma, skibidi, oioioi, johnpork, freakbob, rizz]
+
 #Defining the different boosts
 luckboost1 = Boost("Luck-Boost1", 15)
 luckboost2 = Boost("Luck-Boost2", 30)
@@ -61,9 +64,14 @@ cursor = connection.cursor()
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS player_data (
     user_id INTEGER PRIMARY KEY,
-    brainrots TEXT,
-    amount INTEGER,
     coins INTEGER
+)
+''')
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS player_brainrots (
+    user_id INTEGER PRIMARY KEY,
+    brainrot_name TEXT,
+    amount INTEGER
 )
 ''')
 connection.commit()
@@ -86,13 +94,51 @@ async def start(interaction: discord.Interaction):
         logging.debug(f"{interaction.user} is already in the database (id:{interaction.user.id})")
     else:
         try:
-            cursor.execute('INSERT INTO player_data (user_id) VALUES (?)', (interaction.user.id,))
+            cursor.execute('INSERT INTO player_data (user_id, coins) VALUES (?, ?)', (interaction.user.id, 0,))
             connection.commit()
             await interaction.response.send_message(f"Successfully started, {interaction.user.mention}!")
             logging.debug(f"Successfully added {interaction.user} into the database (id:{interaction.user.id})")
         except:
             await interaction.response.send_message(f"Sorry, there was an error, maybe try again?")
             logging.debug(f"Couldn't start for {interaction.user} (id:{interaction.user.id})")
+
+@bot.tree.command(name="roll", description="Use this command to roll")
+async def roll(interaction: discord.Interaction):
+    sigma.percentage = "54%"
+    skibidi.percentage = "25%"
+    oioioi.percentage = "10%"
+    johnpork.percentage = "5%"
+    freakbob.percentage = "5%"
+    rizz.percentage = "1%"
+    
+    chances = 54,25,10,5,5,1
+
+    rolleditem = random.choices(brainrots, weights=(chances), k=1)[0]
+
+    match rolleditem.name:
+        case sigma.name:
+            coinsgained = 1
+        case skibidi.name:
+            coinsgained = 2
+        case oioioi.name:
+            coinsgained = 3
+        case johnpork.name:
+            coinsgained = 5
+        case freakbob.name:
+            coinsgained = 5
+        case rizz.name:
+            coinsgained = 10
+
+    cursor.execute('SELECT amount FROM player_brainrots WHERE user_id = ? AND brainrot_name = ?', (interaction.user.id, rolleditem.name,))
+    result = cursor.fetchone()
+    if result:
+        new_amount = result[0] + 1
+        cursor.execute('UPDATE player_brainrots SET amount = ? WHERE user_id = ? AND brainrot_name = ?', (new_amount, interaction.user.id, rolleditem.name,))
+    else:
+        cursor.execute('INSERT INTO player_brainrots (user_id, brainrot_name, amount) VALUES (?, ?, ?)', (interaction.user.id, rolleditem.name, 1,))
+    connection.commit()
+
+    await interaction.response.send_message(f"You got {rolleditem.name}! ({rolleditem.rarity}) \n With a {rolleditem.percentage} chance!")
 
 @bot.tree.command(name="database_check", description="Check the database for user IDs.")
 async def database_check(interaction: discord.Interaction):
