@@ -11,6 +11,7 @@ import random
 
 load_dotenv()
 
+# Makes sure all the environment variables are here
 encryption_key = os.getenv('ENCRYPTION_KEY')
 bot_token = os.getenv('TOKEN')
 guild = discord.Object(id=1150387912471490700)
@@ -61,6 +62,7 @@ multiroll2 = Boost("Multi-Roll2", 40)
 connection = sqlite3.connect('brainrot_rng.db')
 cursor = connection.cursor()
 
+#Creates 2 sqlite tables inside the database for different things
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS player_data (
     user_id INTEGER PRIMARY KEY,
@@ -78,12 +80,24 @@ CREATE TABLE IF NOT EXISTS player_brainrots (
 connection.commit()
 
 def check_start_status():
-    pass
+    # Predicate will return a true or false, deciding if the command will run or not
+    # Used at the start of other commands to check if the user has started before the command runs
+    async def predicate(interaction: discord.Interaction):
+        cursor.execute('SELECT * FROM player_data WHERE user_id = ?', (interaction.user.id,))
+        result = cursor.fetchone()
+        if result:
+            return True
+        else:
+            await interaction.response.send_message(f"{interaction.user.mention}, you haven't started yet! Use `/start` to begin.")
+            logging.debug(f"{interaction.user.id} attempted to use a command before starting")
+            return False
+    return commands.check(predicate)
 
 @bot.event
 async def on_ready(): 
     logging.debug(f"{bot.user} is ready")
     try:
+        # Syncs all the slash commands to the bot
         synced = await bot.tree.sync()
         logging.debug(f"Synced {len(synced)} command(s)")
     except Exception as e:
@@ -91,6 +105,8 @@ async def on_ready():
 
 @bot.tree.command(name="start", description="Use this command to begin playing")
 async def start(interaction: discord.Interaction):
+    # Will check if the user is already in the database (has started)
+    # If not, it will add them into the database
     cursor.execute('SELECT * FROM player_data WHERE user_id = ?', (interaction.user.id,))
     result = cursor.fetchone()
     if result:
@@ -107,7 +123,9 @@ async def start(interaction: discord.Interaction):
             logging.debug(f"Couldn't start for {interaction.user} (id:{interaction.user.id})")
 
 @bot.tree.command(name="roll", description="Use this command to roll")
+@check_start_status()
 async def roll(interaction: discord.Interaction):
+    # Sets the percentages and coin values for all the items, then rolls one of them
     sigma.percentage = "54%"
     skibidi.percentage = "25%"
     oioioi.percentage = "10%"
@@ -133,6 +151,7 @@ async def roll(interaction: discord.Interaction):
         case rizz.name:
             coinsgained = 10
 
+    # Will check if the player already has the brainrot, if not it will add it, and also increase the coins and amount
     cursor.execute('SELECT amount FROM player_brainrots WHERE user_id = ? AND brainrot_name = ?', (interaction.user.id, rolleditem.name,))
     result = cursor.fetchone()
     if result:
@@ -151,13 +170,14 @@ async def roll(interaction: discord.Interaction):
 
 @bot.tree.command(name="database_check", description="Check the database for user IDs.")
 async def database_check(interaction: discord.Interaction):
+    # Only the user with this id (my id) can run this, to check all the ids in the database easier
     if interaction.user.id == 653063549496590356:
         cursor.execute('SELECT user_id FROM player_data')
         rows = cursor.fetchall()
 
         if rows:
             user_ids = ', \n'.join([str(row[0]) for row in rows])
-            await interaction.response.send_message(f"User IDs: {user_ids}", ephemeral=True)
+            await interaction.response.send_message(f"User IDs: \n {user_ids}", ephemeral=True)
             logging.debug(f"{interaction.user} (id:{interaction.user.id}) sent a 'database_check' (successful)")
     else:
         await interaction.response.send_message(f"Sorry, {interaction.user.mention} you don't have perms for this :(", ephemeral=True)
@@ -166,6 +186,7 @@ async def database_check(interaction: discord.Interaction):
 @bot.tree.command(name="id_check", description="Check the username of an id")
 @app_commands.describe(user_id="The id to check")
 async def id_check(interaction: discord.Interaction, user_id: str):
+    # I can use this to input a user id and check what username its linked to
     if interaction.user.id == 653063549496590356:
         try:
             user = await bot.fetch_user(int(user_id))  # Fetch the user using the ID
